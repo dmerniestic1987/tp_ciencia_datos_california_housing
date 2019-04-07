@@ -1,11 +1,84 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "California Housing Prices"
+author: "Diego Alejandro Mernies"
+date: "Primer cuatrimestre 2019"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
 ---
+#Introducción
+Realizaremos una análisis de los datos de las casas que se encuentran en un distrito determinado de **California** y algunas estadísticas basadas en el censo de 1990. 
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+##Objetivo
+Predecir el precio de las casa de la época con un modelo de regresión lineal.
 
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+En primer lugar cargamos las librerías requeridas. Si no las tiene en su sistema, puede instalarlas con `install.packages("librería")`.
+
+```{r, message=FALSE}
+library(readr)
+library(dplyr)
+library(corrplot)
+library(ggplot2)
+#library(rms)
+```
+
+##Definición de contantes
+A continuación se define las **constantes** que se utilizarán en el proyecto. 
+```{r}
+# URL donde reside el dataset a utilizar
+dataurl <- "https://raw.githubusercontent.com/dmerniestic1987/tp_ciencia_datos_california_housing/master/input/housing.csv" 
+# Ubicación local en donde se guardará el dataset para su procesamiento
+datadir <- "~/workspace/R/data" 
+```
+
+# Carga de datos
+## Set de datos
+El set de datos es un archivo .csv (comma separated value) de exactamente 10 columnas y 20641 filas de las cuales la primera son los nombres.
+El archivo de input original se llama **housing.csv** y se tomó de [California Housing Price] (https://www.kaggle.com/camnugent/california-housing-prices), pero fue subido a un repositorio GIT para simplificar la descarga de los datos y controlar las versiones.
+
+Los datos pertenecen a las casas que se encuentran en un distrito de California y algunas estadísticas basadas en los datos del censo de 1990. 
+Las variables son: 
+
+Variable | Descripción
+---------|------------
+longitude | Qué tan lejos al oeste este está una casa. Un valor más alto está más al oeste.
+latitude | Qué tan lejos al norte está una casa. Un valor más alto está más al norte.
+housing_median_age | Edad media de una casa dentro de un bloque de casas. Un número más bajo es un edificio más nuevo.
+total_rooms | Número total de ambientes dentro de un bloque de casas.
+total_bedrooms |Número total de habitaciones dentro de un bloque de casas.
+population | Número total de personas que residen dentro de un bloque de casas.
+households | Número total de hogares, un grupo de personas que residen dentro de una unidad de hogar, por un bloque.
+median_income | Ingreso promedio para hogares dentro de un bloque de casas (medido en decenas de miles de dólares estadounidenses)
+median_house_value | Valor medio de la vivienda para hogares dentro de un bloque (medido en dólares estadounidenses)
+ocean_proximity | Ubicación de la casa con relación al oceano o mar.
+
+##Descarga del set de datos
+Descargamos los datos.
+```{r}
+datafile <- paste(datadir, "housing.csv", sep = "/")
+```
+
+En primer lugar se verifica si es necesario crear un directorio para almacenar el archivo.
+```{r}
+if (dir.exists(datadir)) {
+  print(paste("El directorio ", datadir, " ya existe."))
+} else {
+  print(paste("Creando directorio de datos", datadir, "."))
+  dir.create(datadir)
+}
+```
+
+El segundo lugar se descarga la última versión del archivo para poder utilizar la información actualizada.
+```{r}
+if (file.exists(datafile)) {
+  print(paste("El archivo ", datafile, " ya existe, lo elimino."))
+  file.remove(datafile)
+}
+
+download.file(dataurl, datafile, method="auto")
+```
 
 ```{r}
 plot(cars)
