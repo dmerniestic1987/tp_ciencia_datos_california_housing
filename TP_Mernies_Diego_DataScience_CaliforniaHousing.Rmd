@@ -36,7 +36,7 @@ datadir <- "~/workspace/R/data"
 # Carga de datos
 ## Set de datos
 El set de datos es un archivo .csv (comma separated value) de exactamente 10 columnas y 20641 filas de las cuales la primera son los nombres.
-El archivo de input original se llama **housing.csv** y se tomó de [California Housing Price] (https://www.kaggle.com/camnugent/california-housing-prices), pero fue subido a un repositorio GIT para simplificar la descarga de los datos y controlar las versiones.
+El archivo de input original se llama **housing.csv** y se tomó de [California Housing Price] (https://www.kaggle.com/camnugent/california-housing-prices), pero fue subido a un repositorio GIT para simplificar la descarga de los datos y controlar las versiones. El repositorio GIT se puede explorar ingresando a: https://github.com/dmerniestic1987/tp_ciencia_datos_california_housing.
 
 Los datos pertenecen a las casas que se encuentran en un distrito de California y algunas estadísticas basadas en los datos del censo de 1990. 
 Las variables son: 
@@ -80,12 +80,24 @@ if (file.exists(datafile)) {
 download.file(dataurl, datafile, method="auto")
 ```
 
+###Lectura de los datos
+
+Leemos el archivo recientemente descargado convirtiendo los espacios vacíos en N/A. Las columnas sin información no necesitan ser eliminadas dado que el resto de la información del futbolista puede ser útil.
 ```{r}
-plot(cars)
+  dfhousing <- read.csv(datafile)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+###Control de los datos
+Verificamos los primeros registros del archivio para verificar los formatos
+```{r}
+head(dfhousing, give.attr=FALSE, 10)
+```
+Verificamos los últimos registros del archivio para verificar los formatos
+```{r}
+tail(dfhousing, give.attr=FALSE, 10)
+```
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+Obtenemos un resumen de las variables para verificar los datos.
+```{r}
+summary(dfhousing)
+```
