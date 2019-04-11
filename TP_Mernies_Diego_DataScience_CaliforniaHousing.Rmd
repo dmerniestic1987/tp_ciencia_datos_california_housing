@@ -3,10 +3,10 @@ title: "California Housing Prices"
 author: "Diego Alejandro Mernies"
 date: "Primer cuatrimestre 2019"
 output:
+  pdf_document: default
   html_document:
     df_print: paged
   html_notebook: default
-  pdf_document: default
 ---
 #Introducción
 Realizaremos una análisis de los datos de las casas que se encuentran en un distrito determinado de **California** y algunas estadísticas basadas en el censo de 1990. 
@@ -21,7 +21,8 @@ library(readr)
 library(dplyr)
 library(corrplot)
 library(ggplot2)
-#library(rms)
+library(scales)
+library(rms)
 ```
 
 ##Definición de contantes
@@ -35,7 +36,7 @@ datadir <- "~/workspace/R/data"
 
 # Carga de datos
 ## Set de datos
-El set de datos es un archivo .csv (comma separated value) de exactamente 10 columnas y 20641 filas de las cuales la primera son los nombres.
+El set de datos es un archivo .csv (comma separated value) de exactamente 10 columnas y 20641 filas de las cuales la primera contiene los nombres.
 El archivo de input original se llama **housing.csv** y se tomó de [California Housing Price] (https://www.kaggle.com/camnugent/california-housing-prices), pero fue subido a un repositorio GIT para simplificar la descarga de los datos y controlar las versiones. El repositorio GIT se puede explorar ingresando a: https://github.com/dmerniestic1987/tp_ciencia_datos_california_housing.
 
 Los datos pertenecen a las casas que se encuentran en un distrito de California y algunas estadísticas basadas en los datos del censo de 1990. 
@@ -80,24 +81,207 @@ if (file.exists(datafile)) {
 download.file(dataurl, datafile, method="auto")
 ```
 
-###Lectura de los datos
+##Lectura de los datos
 
 Leemos el archivo recientemente descargado convirtiendo los espacios vacíos en N/A. Las columnas sin información no necesitan ser eliminadas dado que el resto de la información del futbolista puede ser útil.
 ```{r}
   dfhousing <- read.csv(datafile)
 ```
 
-###Control de los datos
-Verificamos los primeros registros del archivio para verificar los formatos
+##Control de datos
+Verifcamos que nos nombres de las columnas sean correctos
 ```{r}
-head(dfhousing, give.attr=FALSE, 10)
+colnames(dfhousing)
 ```
-Verificamos los últimos registros del archivio para verificar los formatos
+Verificamos los tipos de datos de las columnas
 ```{r}
-tail(dfhousing, give.attr=FALSE, 10)
+dim(dfhousing)
+```
+
+```{r}
+str(dfhousing)
+```
+
+Verificamos los primeros registros del archivo para verificar los formatos
+```{r}
+head(dfhousing, give.attr=FALSE)
+```
+Verificamos los últimos registros del archivo para verificar los formatos
+```{r}
+tail(dfhousing, give.attr=FALSE)
 ```
 
 Obtenemos un resumen de las variables para verificar los datos.
 ```{r}
 summary(dfhousing)
+```
+El resumen estadísticos se detectó:
+* Es necesario limpiar los NA'S de la columna total_bedrooms.
+* Existen sólo 5 casas que están en una Isla.
+* Los valores máximos de total_rooms, total_bedrooms, population y households son muy altos en comparación a la media. 
+
+Se realiza una exploración de los datos para analizar su distribución.
+
+```{r}
+ggplot(dfhousing) +
+  geom_histogram(aes(x=housing_median_age), binwidth=5, fill="lightsalmon", bins=30)
+```
+Mostramos la cantidad de hogares como un diagrama de densidad.
+```{r}
+ggplot(dfhousing) +
+  geom_density(aes(x=households), fill="lightsalmon") + 
+  scale_x_log10(breaks=c(10, 100, 1000, 100000)) +
+  annotation_logticks(sides="bt")
+```
+A contiuación se observan los ingresos medios.
+```{r}
+ggplot(dfhousing) +
+  geom_density(aes(x=median_income), fill="steel blue")
+```
+
+```{r}
+ggplot(dfhousing) +
+  geom_density(aes(x=median_house_value), fill="steel blue")
+```
+Analizamos la cantidad de casas según la proximidad al mar.
+```{r}
+ggplot(dfhousing) +
+  geom_bar(aes(x=ocean_proximity), fill="mediumaquamarine")+
+  coord_flip() +
+  theme(axis.text.y=element_text(size=rel(0.4)))
+```
+
+##Limpieza de datos
+Se eliminan los NA de **total_bedrooms**
+```{r}
+dfhousing$total_bedrooms[is.na(dfhousing$total_bedrooms)]= median(dfhousing$total_bedrooms, na.rm=TRUE)
+```
+
+Para corregir los altos valores máximos se crean dos nuevas columnas:
+*mean_bedrooms: El cuociente entre habitaciones por hogares.
+*mean_rooms: El cuociente entre ambientes por hogares. 
+Posteriormente eliminamos las columnas total_bedrooms y total_rooms
+```{r}
+dfhousing$mean_bedrooms = dfhousing$total_bedrooms / dfhousing$households
+dfhousing$mean_rooms = dfhousing$total_rooms / dfhousing$households
+```
+
+```{r}
+#Eliminamos las columnas total_bedrooms y total_rooms para usar el nuevo índice 
+drops = c('total_bedrooms', 'total_rooms')
+dfhousing = dfhousing[ , !(names(dfhousing) %in% drops) ]
+```
+
+Controlamos la nueva estructura de la tabla
+```{r}
+head(dfhousing)
+```
+
+```{r}
+ggplot(dfhousing) +
+  geom_histogram(aes(x=mean_rooms), binwidth=5, fill="lightsalmon", bins=30)
+```
+
+```{r}
+ggplot(dfhousing) +
+  geom_histogram(aes(x=mean_bedrooms), binwidth=5, fill="lightsalmon", bins=30)
+```
+```{r}
+#Creamos un nuevo dataframe auxiliar sin ocean_proximity que es categórico, ni median_house_value
+#que el dato que se intentará predecir. Luego se escalan los valores para trabajarlos con gráficos más legibles.
+drops = c('ocean_proximity','median_house_value')
+dfhousing_aux =  dfhousing[ , !(names(dfhousing) %in% drops)]
+dfscaledhousing_aux = scale(dfhousing_aux)
+```
+```{r}
+#Creamos un nuevo dataframe que contenga solo la proximidad al mar. Luego limpiamos el resto de las columnas
+dropsCategories = c('ocean_proximity', 'median_house_value')
+dfcat_aux =  dfhousing[ , (names(dfhousing) %in% dropsCategories)]
+```
+
+```{r}
+#Combinamos las dataframes y generamos un nuevo que contenga la combinación con los datos escalados y las categorías. 
+dfhousing_clean = cbind(DataSet1=dfcat_aux, DataSet2=dfscaledhousing_aux, median_house_value=dfhousing$median_house_value)
+
+dropClean = c('DataSet1.median_house_value')
+dfhousing_clean =  dfhousing_clean[ , !(names(dfhousing_clean) %in% dropClean)]
+
+newNames = c('ocean_proximity', 'longitude', 'latitude', 'housing_median_age', 'population', 'households', 'median_income', 'mean_bedrooms', 'mean_rooms', 'median_house_value')
+colnames(dfhousing_clean) <- newNames
+
+```
+
+## Visualización de correlaciones
+```{r}
+dfhousing_clean %>%
+    select_if(is.numeric) %>%
+    cor() %>%
+    corrplot()
+```
+En base al gráfico de correlación se puede determinó que existe una fuerte relación entre la cantidad de la población y la cantidad de hogares. También que el precio de las casas está relacionado con el ingreso medio por lo que pueden haber barrios más caros.
+
+
+```{r}
+ggplot(dfhousing_clean) +
+    geom_boxplot(aes(x=ocean_proximity, y=median_house_value))
+```
+
+```{r}
+ggplot(dfhousing_clean) +
+    geom_boxplot(aes(x=ocean_proximity, y=mean_bedrooms))
+```
+#Creación de modelos
+##Creación de datos de entrenamiento y pruebas
+Crearemos dos datasets: Uno de entrenamiento y otro de pruebas utilizando la proporción 80 para entrenamiento y 20 para test.
+```{r}
+set.seed(77222)
+seleccion <- runif(dim(dfhousing_clean)[1])
+
+dftrain <- select(dfhousing_clean, population, median_house_value, median_income, mean_rooms, households, ocean_proximity, housing_median_age, mean_bedrooms)[seleccion < 0.8, ]
+dftest <- select(dfhousing_clean, population, median_house_value, median_income, mean_rooms, households, ocean_proximity, housing_median_age, mean_bedrooms)[seleccion >= 0.8, ]
+```
+
+##Modelo 1.
+El primer modelo utiliza los predictores: **median_income**, **mean_rooms** y **population** para intentar predecir el valor de las propiedades plasmados en **median_house_value**.
+```{r}
+lineModel <- lm( median_house_value~median_income+mean_rooms+population, data=dftrain)
+summary(lineModel)
+print("VIF()")
+vif(lineModel)
+```
+```{r}
+plot(lineModel)
+```
+
+
+##Modelo 2.
+El segundo modelo utiliza los predictores: **median_income**, **mean_rooms**, **population** y **housing_median_age** para intentar predecir el valor de las propiedades plasmados en **median_house_value**.
+```{r}
+lineModel2 <- lm( median_house_value~median_income+mean_rooms+population+housing_median_age, data=dftrain)
+summary(lineModel2)
+print("* * * * * * * vif(lineModel2) * * * * * * *")
+vif(lineModel2)
+```
+```{r}
+plot(lineModel2)
+```
+##Modelo 3.
+El último modelo utiliza los predictores: **mean_bedrooms**, **mean_rooms**, **median_income** y **housing_median_age** para intentar predecir el valor de las propiedades plasmados en **median_house_value**.
+```{r}
+lineModel3 <- lm( median_house_value~mean_bedrooms+mean_rooms+housing_median_age+median_income, data=dftrain)
+summary(lineModel3)
+print("* * * * * * * vif(lineModel3) * * * * * * *")
+vif(lineModel3)
+```
+Predicción del modelo
+```{r}
+predModel3 <- predict(lineModel3, newdata = dftrain)
+summary(predModel3)
+print("* * * * * * * mean(predModel3) * * * * * *")
+mean(predModel3)
+print("* * * * * * * sd(predModel3) * * * * * *")
+sd(predModel3)
+```
+```{r}
+plot(lineModel3)
 ```
