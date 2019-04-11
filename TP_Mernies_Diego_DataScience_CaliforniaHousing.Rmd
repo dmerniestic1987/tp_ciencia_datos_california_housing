@@ -250,6 +250,14 @@ print("VIF()")
 vif(lineModel)
 ```
 ```{r}
+predModel <- predict(lineModel, newdata = dftrain)
+summary(predModel)
+print("* * * * * * * mean(predModel) * * * * * *")
+mean(predModel)
+print("* * * * * * * sd(predModel) * * * * * *")
+sd(predModel)
+```
+```{r}
 plot(lineModel)
 ```
 
@@ -264,6 +272,14 @@ vif(lineModel2)
 ```
 ```{r}
 plot(lineModel2)
+```
+```{r}
+predModel2 <- predict(lineModel2, newdata = dftrain)
+summary(predModel2)
+print("* * * * * * * mean(predModel3) * * * * * *")
+mean(predModel2)
+print("* * * * * * * sd(predModel3) * * * * * *")
+sd(predModel2)
 ```
 ##Modelo 3.
 El último modelo utiliza los predictores: **mean_bedrooms**, **mean_rooms**, **median_income** y **housing_median_age** para intentar predecir el valor de las propiedades plasmados en **median_house_value**.
