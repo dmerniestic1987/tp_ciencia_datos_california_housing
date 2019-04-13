@@ -8,11 +8,11 @@ output:
     df_print: paged
   html_notebook: default
 ---
-#Introducción
-Realizaremos una análisis de los datos de las casas que se encuentran en un distrito determinado de **California** y algunas estadísticas basadas en el censo de 1990. 
+# Introducción
+Realizaremos una análisis de los datos de las viviendas que se encuentran en un distrito determinado de **California** y algunas estadísticas basadas en el censo de **1990**. 
 
-##Objetivo
-Predecir el precio de las casa de la época con un modelo de regresión lineal.
+## Objetivo.
+Predecir el precio de las casa de la época con un modelo de regresión lineal. El problema es de aprendizaje supervisado.
 
 En primer lugar cargamos las librerías requeridas. Si no las tiene en su sistema, puede instalarlas con `install.packages("librería")`.
 
@@ -25,7 +25,7 @@ library(scales)
 library(rms)
 ```
 
-##Definición de contantes
+## Definición de contantes
 A continuación se define las **constantes** que se utilizarán en el proyecto. 
 ```{r}
 # URL donde reside el dataset a utilizar
@@ -39,8 +39,7 @@ datadir <- "~/workspace/R/data"
 El set de datos es un archivo .csv (comma separated value) de exactamente 10 columnas y 20641 filas de las cuales la primera contiene los nombres.
 El archivo de input original se llama **housing.csv** y se tomó de [California Housing Price] (https://www.kaggle.com/camnugent/california-housing-prices), pero fue subido a un repositorio GIT para simplificar la descarga de los datos y controlar las versiones. El repositorio GIT se puede explorar ingresando a: https://github.com/dmerniestic1987/tp_ciencia_datos_california_housing.
 
-Los datos pertenecen a las casas que se encuentran en un distrito de California y algunas estadísticas basadas en los datos del censo de 1990. 
-Las variables son: 
+Los datos pertenecen a las casas que se encuentran en un distrito de California y algunas estadísticas basadas en los datos del censo de 1990. Las variables son: 
 
 Variable | Descripción
 ---------|------------
@@ -55,7 +54,8 @@ median_income | Ingreso promedio para hogares dentro de un bloque de casas (medi
 median_house_value | Valor medio de la vivienda para hogares dentro de un bloque (medido en dólares estadounidenses)
 ocean_proximity | Ubicación de la casa con relación al oceano o mar.
 
-##Descarga del set de datos
+La variable a predecir es **median_house_value**.
+## Descarga del set de datos
 Descargamos los datos.
 ```{r}
 datafile <- paste(datadir, "housing.csv", sep = "/")
@@ -81,19 +81,19 @@ if (file.exists(datafile)) {
 download.file(dataurl, datafile, method="auto")
 ```
 
-##Lectura de los datos
+## Lectura de los datos
 
 Leemos el archivo recientemente descargado convirtiendo los espacios vacíos en N/A. Las columnas sin información no necesitan ser eliminadas dado que el resto de la información del futbolista puede ser útil.
 ```{r}
   dfhousing <- read.csv(datafile)
 ```
 
-##Control de datos
-Verifcamos que nos nombres de las columnas sean correctos
+## Control de datos
+Verifcamos que los nombres de las columnas sean correctos.
 ```{r}
 colnames(dfhousing)
 ```
-Verificamos los tipos de datos de las columnas
+Verificamos la dimensión y los tipos de datos de las columnas.
 ```{r}
 dim(dfhousing)
 ```
@@ -102,11 +102,10 @@ dim(dfhousing)
 str(dfhousing)
 ```
 
-Verificamos los primeros registros del archivo para verificar los formatos
+Verificamos el contenido de los primeros y últimos registros del archivo.
 ```{r}
 head(dfhousing, give.attr=FALSE)
 ```
-Verificamos los últimos registros del archivo para verificar los formatos
 ```{r}
 tail(dfhousing, give.attr=FALSE)
 ```
@@ -115,35 +114,35 @@ Obtenemos un resumen de las variables para verificar los datos.
 ```{r}
 summary(dfhousing)
 ```
-El resumen estadísticos se detectó:
+Del resumen estadísticos se detectó:
 * Es necesario limpiar los NA'S de la columna total_bedrooms.
 * Existen sólo 5 casas que están en una Isla.
 * Los valores máximos de total_rooms, total_bedrooms, population y households son muy altos en comparación a la media. 
 
-Se realiza una exploración de los datos para analizar su distribución.
-
+## Visualización de datos
 ```{r}
 ggplot(dfhousing) +
   geom_histogram(aes(x=housing_median_age), binwidth=5, fill="lightsalmon", bins=30)
 ```
-Mostramos la cantidad de hogares como un diagrama de densidad.
-```{r}
-ggplot(dfhousing) +
-  geom_density(aes(x=households), fill="lightsalmon") + 
-  scale_x_log10(breaks=c(10, 100, 1000, 100000)) +
-  annotation_logticks(sides="bt")
-```
-A contiuación se observan los ingresos medios.
+Observamos que en el comunto de datos las casas tenían entre 1 y 52 años de antigüedad.
+
 ```{r}
 ggplot(dfhousing) +
   geom_density(aes(x=median_income), fill="steel blue")
 ```
-
+En este gráfico se observa que hay pocas personas que tiene altos ingresos en la plobación analizada.
 ```{r}
 ggplot(dfhousing) +
   geom_density(aes(x=median_house_value), fill="steel blue")
 ```
-Analizamos la cantidad de casas según la proximidad al mar.
+En el gráfico anterior observamos que la mayoría de las casas tienen un precio inferior a los 30.000 dólares estadounidenses, siendo la menor cantidad comprendido entre los 40.000 y 46.000 dólares aproximadamente.
+```{r}
+ggplot(dfhousing) +
+  geom_point(aes(x = median_income, y = median_house_value)) +
+  stat_smooth(aes(x = median_income, y = median_house_value), method = "lm", color = "salmon", se = F)
+```
+En base a este gráfico podemos observar que en promedio las casas no superan los U$S 500.000 y esto podría afectar al modelo porque hay un límite claramente marcado, pero desconocemos si ese límite fue puesto a propósito por lo que los eliminaremos para nuestro análisis. 
+
 ```{r}
 ggplot(dfhousing) +
   geom_bar(aes(x=ocean_proximity), fill="mediumaquamarine")+
@@ -151,10 +150,15 @@ ggplot(dfhousing) +
   theme(axis.text.y=element_text(size=rel(0.4)))
 ```
 
-##Limpieza de datos
+## Limpieza de datos
 Se eliminan los NA de **total_bedrooms**
 ```{r}
 dfhousing$total_bedrooms[is.na(dfhousing$total_bedrooms)]= median(dfhousing$total_bedrooms, na.rm=TRUE)
+```
+
+Filtramos los datos para eliminar los valores máximos de median_house_value para eliminar las casa que tienen un precio mayor o igual a U$s 500.000
+```{r}
+dfhousing <- dfhousing[dfhousing$median_house_value < 500000,]
 ```
 
 Para corregir los altos valores máximos se crean dos nuevas columnas:
@@ -168,7 +172,7 @@ dfhousing$mean_rooms = dfhousing$total_rooms / dfhousing$households
 
 ```{r}
 #Eliminamos las columnas total_bedrooms y total_rooms para usar el nuevo índice 
-drops = c('total_bedrooms', 'total_rooms')
+drops = c('total_bedrooms', 'total_rooms', 'longitude', 'latitude')
 dfhousing = dfhousing[ , !(names(dfhousing) %in% drops) ]
 ```
 
@@ -178,18 +182,10 @@ head(dfhousing)
 ```
 
 ```{r}
-ggplot(dfhousing) +
-  geom_histogram(aes(x=mean_rooms), binwidth=5, fill="lightsalmon", bins=30)
-```
-
-```{r}
-ggplot(dfhousing) +
-  geom_histogram(aes(x=mean_bedrooms), binwidth=5, fill="lightsalmon", bins=30)
-```
-```{r}
 #Creamos un nuevo dataframe auxiliar sin ocean_proximity que es categórico, ni median_house_value
 #que el dato que se intentará predecir. Luego se escalan los valores para trabajarlos con gráficos más legibles.
-drops = c('ocean_proximity','median_house_value')
+#También eliminamos las columnas latitud y longitud ya que no las usamos.
+drops = c('ocean_proximity','median_house_value', 'latitude', 'longitude')
 dfhousing_aux =  dfhousing[ , !(names(dfhousing) %in% drops)]
 dfscaledhousing_aux = scale(dfhousing_aux)
 ```
@@ -206,7 +202,7 @@ dfhousing_clean = cbind(DataSet1=dfcat_aux, DataSet2=dfscaledhousing_aux, median
 dropClean = c('DataSet1.median_house_value')
 dfhousing_clean =  dfhousing_clean[ , !(names(dfhousing_clean) %in% dropClean)]
 
-newNames = c('ocean_proximity', 'longitude', 'latitude', 'housing_median_age', 'population', 'households', 'median_income', 'mean_bedrooms', 'mean_rooms', 'median_house_value')
+newNames = c('ocean_proximity', 'housing_median_age', 'population', 'households', 'median_income', 'mean_bedrooms', 'mean_rooms', 'median_house_value')
 colnames(dfhousing_clean) <- newNames
 
 ```
@@ -225,14 +221,11 @@ En base al gráfico de correlación se puede determinó que existe una fuerte re
 ggplot(dfhousing_clean) +
     geom_boxplot(aes(x=ocean_proximity, y=median_house_value))
 ```
+En este gráfico podemos observar que la proximidad al mar y al océano impactan fuertemente en el precio de la propiedad.
 
-```{r}
-ggplot(dfhousing_clean) +
-    geom_boxplot(aes(x=ocean_proximity, y=mean_bedrooms))
-```
-#Creación de modelos
-##Creación de datos de entrenamiento y pruebas
-Crearemos dos datasets: Uno de entrenamiento y otro de pruebas utilizando la proporción 80 para entrenamiento y 20 para test.
+# Construcción de modelos
+## Creación de datos de entrenamiento y pruebas
+Creamos dos datasets: Uno de entrenamiento y otro de pruebas utilizando la proporción 80 para entrenamiento y 20 para test.
 ```{r}
 set.seed(77222)
 seleccion <- runif(dim(dfhousing_clean)[1])
@@ -241,63 +234,88 @@ dftrain <- select(dfhousing_clean, population, median_house_value, median_income
 dftest <- select(dfhousing_clean, population, median_house_value, median_income, mean_rooms, households, ocean_proximity, housing_median_age, mean_bedrooms)[seleccion >= 0.8, ]
 ```
 
-##Modelo 1.
+## Modelo 1.
 El primer modelo utiliza los predictores: **median_income**, **mean_rooms** y **population** para intentar predecir el valor de las propiedades plasmados en **median_house_value**.
 ```{r}
 lineModel <- lm( median_house_value~median_income+mean_rooms+population, data=dftrain)
 summary(lineModel)
-print("VIF()")
 vif(lineModel)
 ```
+El coeciciente **R-squared** de 0.4846 del modelo nos dice que el modelo explica el 48.46% de la varianza total de la variable en la regresión.
+
+El coeficiente **Adjusted R-squared** nos dice que el 48.45% de la variable dependiente (median_house_value) es explicado por las variables independientes.
+
+Los factores de inflación de la varianza tomados tienen valores aceptables ya que son menores a 10.
+
 ```{r}
 predModel <- predict(lineModel, newdata = dftrain)
 summary(predModel)
-print("* * * * * * * mean(predModel) * * * * * *")
 mean(predModel)
-print("* * * * * * * sd(predModel) * * * * * *")
 sd(predModel)
 ```
 ```{r}
 plot(lineModel)
 ```
 
-
-##Modelo 2.
+## Modelo 2.
 El segundo modelo utiliza los predictores: **median_income**, **mean_rooms**, **population** y **housing_median_age** para intentar predecir el valor de las propiedades plasmados en **median_house_value**.
 ```{r}
 lineModel2 <- lm( median_house_value~median_income+mean_rooms+population+housing_median_age, data=dftrain)
 summary(lineModel2)
-print("* * * * * * * vif(lineModel2) * * * * * * *")
 vif(lineModel2)
 ```
+El coeciciente **R-squared** de 0.5155 del modelo nos dice que el modelo explica el 51.55% de la varianza total de la variable en la regresión, supera al modelo anterior en casi 3%.
+
+El coeficiente **Adjusted R-squared** nos dice que el 51.54% de la variable dependiente (median_house_value) es explicado por las variables independientes, también es superior al modelo anterior.
+
+Los factores de inflación de la varianza tomados tienen valores aceptables ya que son menores a 10.
+
 ```{r}
 plot(lineModel2)
 ```
 ```{r}
 predModel2 <- predict(lineModel2, newdata = dftrain)
 summary(predModel2)
-print("* * * * * * * mean(predModel3) * * * * * *")
 mean(predModel2)
-print("* * * * * * * sd(predModel3) * * * * * *")
 sd(predModel2)
 ```
-##Modelo 3.
+## Modelo 3.
 El último modelo utiliza los predictores: **mean_bedrooms**, **mean_rooms**, **median_income** y **housing_median_age** para intentar predecir el valor de las propiedades plasmados en **median_house_value**.
 ```{r}
-lineModel3 <- lm( median_house_value~mean_bedrooms+mean_rooms+housing_median_age+median_income, data=dftrain)
+lineModel3 <- lm( median_house_value~mean_bedrooms+mean_rooms+housing_median_age+median_income+ocean_proximity, data=dftrain)
 summary(lineModel3)
-print("* * * * * * * vif(lineModel3) * * * * * * *")
 vif(lineModel3)
 ```
-Predicción del modelo
+Los coeficientes **R-squared** y **Adjusted R-squared** son los más altos de los 3 modelos y los factores de inflación de la varianza tienen valores aceptables ya que son menores a 10. Finalmente el error residual standard es el menor de los 3 modelos.
+
+
 ```{r}
 predModel3 <- predict(lineModel3, newdata = dftrain)
 summary(predModel3)
-print("* * * * * * * mean(predModel3) * * * * * *")
+```
+```{r}
 mean(predModel3)
-print("* * * * * * * sd(predModel3) * * * * * *")
 sd(predModel3)
 ```
 ```{r}
 plot(lineModel3)
 ```
+# Validación
+Se realiza la validación de los modelos con los datos de prueba.
+TODO: TENEMOS QUE PROBAR Y VALIDAR LOS DATOS. PARA ESTO HACEMOS UNA PREDICCIÓN CON TODO LOS DATOS Y LOS PREDECIDOS CON TEST Y COMPARAMOS. LUEGO HACEMOS EL SUM Y COMPARAMOS. UNA SEGUNDA OPCIÓN ES TOMAR 15 CASAS AL AZAR.
+```{r}
+predTestModelo1 <- predict(lineModel, newdata=dftest)
+
+dftest <- cbind(dftest, predSales=predTestModelo1)
+```
+
+```{r}
+mean(dftest$median_house_value)
+```
+```{r}
+sd(dftest$median_house_value)
+```
+
+
+# Conclusiones
+Consideramos que la mejor opción es el modelo Nº 3 debido a que los coeficientes R² y R² ajustado son los más altos de los tres modelos, además el error standard residual es el más bajo de los 3, sin embargo vimos que 
